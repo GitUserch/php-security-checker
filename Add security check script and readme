@@ -1,0 +1,134 @@
+# 🛡️ PHP Security & Vulnerability Checker
+
+Инструмент для экспресс-проверки серверов и сайтов на наличие критических уязвимостей в PHP (включая RCE-векторы и небезопасные конфигурации).
+
+---
+
+## 🚨 Зачем это нужно?
+
+В ядре PHP и механизмах обработки сессий обнаружены критические уязвимости выполнения произвольного кода (RCE). Если ваша версия PHP устарела или в ней включены опасные настройки, сервер находится под угрозой взлома.
+
+Этот репозиторий содержит простые и безопасные скрипты для быстрой диагностики.
+
+---
+
+## 🚀 Как использовать
+
+### Вариант 1: Для владельцев сайтов (Веб-интерфейс)
+
+1. Скачайте файл `security_check.php` из этого репозитория.
+2. Загрузите его в корневую папку вашего сайта (например, `public_html`).
+3. Откройте в браузере: `https://ваш-сайт.com/security_check.php`
+4. Посмотрите результат проверки.
+5. **Важно:** Удалите файл `security_check.php` с сервера сразу после проверки!
+
+---
+
+## 🛠 Безопасные версии PHP
+
+Для полной защиты ваша система должна быть обновлена до следующих версий:
+
+- **PHP 8.5** ➔ `8.5.12` или выше
+- **PHP 8.4** ➔ `8.4.27` или выше
+- **PHP 8.3** ➔ `8.3.36` или выше
+- **PHP 8.2** ➔ `8.2.35` или выше
+
+> ⚠️ Все версии PHP 8.1 и ниже официально сняты с поддержки (EOL) и требуют срочной миграции на поддерживаемые ветки.
+
+---
+
+## 🛡️ Временные меры митигации
+
+Если вы не можете обновить PHP прямо сейчас, отключите отслеживание загрузок в `php.ini`:
+
+```ini
+session.upload_progress.enabled = 0
+
+<?php
+header('Content-Type: text/html; charset=utf-8');
+
+$current_version = PHP_VERSION;
+
+$safe_versions = [
+    '8.5' => '8.5.12',
+    '8.4' => '8.4.27',
+    '8.3' => '8.3.36',
+    '8.2' => '8.2.35',
+];
+
+$major_minor = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+$is_vulnerable = false;
+$recommended_version = "Обновитесь до последней стабильной версии";
+
+if (isset($safe_versions[$major_minor])) {
+    $min_safe = $safe_versions[$major_minor];
+    if (version_compare($current_version, $min_safe, '<')) {
+        $is_vulnerable = true;
+        $recommended_version = $min_safe;
+    }
+} else {
+    if (version_compare($current_version, '8.2.0', '<')) {
+        $is_vulnerable = true;
+        $recommended_version = "PHP 8.2+ или 8.3+ (Ваша ветка EOL и не поддерживается)";
+    }
+}
+
+$upload_progress_enabled = ini_get('session.upload_progress.enabled');
+?>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Проверка безопасности PHP</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 40px; }
+        .container { max-width: 700px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        h1 { font-size: 24px; margin-top: 0; color: #38bdf8; }
+        .badge { display: inline-block; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 14px; margin-bottom: 20px; }
+        .danger { background: #ef4444; color: white; }
+        .safe { background: #22c55e; color: white; }
+        .box { background: #334155; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .warning-text { color: #facc15; font-weight: bold; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; }
+        .footer { font-size: 12px; color: #94a3b8; text-top-margin: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Аудит безопасности PHP</h1>
+        
+        <div class="box">
+            <p><strong>Текущая версия PHP на сервере:</strong> <code><?php echo htmlspecialchars($current_version); ?></code></p>
+            <p><strong>Интерпретатор / Сервер:</strong> <?php echo htmlspecialchars($_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'); ?></p>
+            <p><strong>Отслеживание загрузки сессий (upload_progress):</strong> 
+                <?php echo $upload_progress_enabled ? '<span class="warning-text">Включено (Рекомендуется отключить)</span>' : 'Отключено (Безопасно)'; ?>
+            </p>
+        </div>
+
+        <?php if ($is_vulnerable): ?>
+            <div class="badge danger">⚠️ ВНИМАНИЕ: СЕРВЕР УЯЗВИМ К КРИТИЧЕСКИМ RCE-АТАКАМ!</div>
+            <div class="box" style="border-left: 4px solid #ef4444;">
+                <p>Обнаружена уязвимая версия PHP. Злоумышленники могут выполнить произвольный код на сервере.</p>
+                <p><strong>Рекомендация:</strong> Срочно обратитесь в поддержку хостинга или обновите PHP до версии <strong><?php echo htmlspecialchars($recommended_version); ?></strong> или выше.</p>
+            </div>
+        <?php else: ?>
+            <div class="badge safe">✅ ВЕРСИЯ PHP ЗАЩИЩЕНА</div>
+            <div class="box" style="border-left: 4px solid #22c55e;">
+                <p>Ваша версия PHP имеет актуальные официальные патчи безопасности.</p>
+            </div>
+        <?php endif; ?>
+
+        <h3>📋 Что делать дальше?</h3>
+        <ul>
+            <li>Если ваш сайт находится на общем хостинге (shared hosting), зайдите в панель управления хостингом (cPanel, ISPmanager и др.) и переключите версию PHP на актуальную.</li>
+            <li>Если у вас VPS/деликатесный сервер, обновите пакеты через пакетный менеджер вашей ОС (например, <code>apt upgrade php8.3</code>).</li>
+            <li>Удалите этот файл (`security_check.php`) с сервера сразу после проверки в целях безопасности!</li>
+        </ul>
+
+        <div class="footer">
+            Создано для кампании по защите PHP-сообщества.
+        </div>
+    </div>
+</body>
+</html>
